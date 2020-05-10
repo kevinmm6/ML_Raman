@@ -79,9 +79,9 @@ def random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y):
     # file = tk.filedialog.askopenfilename() #Invoke dialog window to open file
  
 # Load file data programatically
-data_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Raman20200218.csv'
+data_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Raman 20200218.csv'
 data = pd.read_csv(data_filepath) #Read data in Raman file
-target_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Targets20200218.csv'
+target_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Targets 20200218.csv'
 target = pd.read_csv(target_filepath)  #Read data in target file
 # %% Select data  of interest
 # Create list with features of interest (Spectra_049 to Spectra_1024 since first 50 pixels empty)
