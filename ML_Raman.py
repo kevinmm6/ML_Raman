@@ -31,15 +31,20 @@ def decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt):
         dtpredictions = raman_dtmodel.predict(val_X) #Predictions
         dtmae.append(mean_absolute_error(dtpredictions,val_y)) #MAE
     dtmae_min_idx = dtmae.index(min(dtmae))
+    #Store optimized values of DT model for comparison
     if target_name == 'Tear':
-        mae_dt['Tear'] = min(dtmae)
+        mae_dt['Tear'] = dtmae
+        mae_dt['Tear_opt'] = min(dtmae)
         mae_dt['Tear_nodes'] = dt_optimization_leafs[dtmae_min_idx]
     elif target_name == 'BL':
-        mae_dt['BL'] = min(dtmae)
+        mae_dt['BL'] = dtmae
+        mae_dt['BL_opt'] = min(dtmae)
         mae_dt['BL_nodes'] = dt_optimization_leafs[dtmae_min_idx]
     else:
-        mae_dt['Burst']= min(dtmae)
+        mae_dt['Burst']= dtmae
+        mae_dt['Burst_opt']= min(dtmae)
         mae_dt['Burst_nodes'] = dt_optimization_leafs[dtmae_min_idx]
+    return mae_dt
     # # Plotting 
     # plt.figure(ii+1)
     # plt.plot(dt_optimization_leafs,dtmae,'.') 
@@ -64,15 +69,20 @@ def random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf):
         rfpredictions = raman_rfmodel.predict(val_X)
         rfmae.append(mean_absolute_error(rfpredictions,val_y))
     rfmae_min_idx = rfmae.index(min(rfmae))
+    #Store optimized values of RF model for comparison
     if target_name == 'Tear':
-        mae_rf['Tear'] = min(rfmae)
+        mae_rf['Tear'] = rfmae
+        mae_rf['Tear_opt'] = min(rfmae)
         mae_rf['Tear_nodes'] = rf_optimization_leafs[rfmae_min_idx]
     elif target_name == 'BL':
-        mae_rf['BL'] = min(rfmae)
+        mae_rf['BL'] = rfmae
+        mae_rf['BL_opt'] = min(rfmae)
         mae_rf['BL_nodes'] = rf_optimization_leafs[rfmae_min_idx]
     else:
-        mae_rf['Burst']= min(rfmae)
+        mae_rf['Burst']= rfmae
+        mae_rf['Burst_opt']= min(rfmae)
         mae_rf['Burst_nodes'] = rf_optimization_leafs[rfmae_min_idx]
+        return mae_rf
     # # Plotting
     # plt.figure(ii+1+target_data.shape[1])
     # plt.plot(rf_optimization_leafs,rfmae,'.')
@@ -83,33 +93,33 @@ def random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf):
 # Comparison
 def comparison(target_name,mae_dt,mae_rf):
     if target_name == 'BL':
-        if mae_dt['BL'] < mae_rf['BL']:
+        if mae_dt['BL_opt'] < mae_rf['BL_opt']:
             bestmodel = 'Decision Tree'
-            mae = mae_dt['BL']
+            mae = mae_dt['BL_opt']
             nodes = mae_dt['BL_nodes']
         else:
             bestmodel = 'Random Forest'
-            mae = mae_rf['BL']
+            mae = mae_rf['BL_opt']
             nodes = mae_rf['BL_nodes']
         print('Best model for BL is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
     elif target_name == 'Tear':
-        if mae_dt['Tear'] < mae_rf['Tear']:
+        if mae_dt['Tear_opt'] < mae_rf['Tear_opt']:
             bestmodel = 'Decision Tree'
-            mae = mae_dt['Tear']
+            mae = mae_dt['Tear_opt']
             nodes = mae_dt['Tear_nodes']
         else:
             bestmodel = 'Random Forest'
-            mae = mae_rf['Tear']
+            mae = mae_rf['Tear_opt']
             nodes = mae_rf['Tear_nodes']
         print('Best model for Tear is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
     else:
-        if mae_dt['Burst'] < mae_rf['Burst']:
+        if mae_dt['Burst_opt'] < mae_rf['Burst_opt']:
             bestmodel = 'Decision Tree'
-            mae = mae_dt['Burst']
+            mae = mae_dt['Burst_opt']
             nodes = mae_dt['Burst_nodes']
         else:
             bestmodel = 'Random Forest'
-            mae = mae_rf['Burst']
+            mae = mae_rf['Burst_opt']
             nodes = mae_rf['Burst_nodes']
         print('Best model for Burst is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
 # %% Load and read data (either programatically or manually)
@@ -119,10 +129,10 @@ def comparison(target_name,mae_dt,mae_rf):
     # file = tk.filedialog.askopenfilename() #Invoke dialog window to open file
  
 # Load file data programatically
-data_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Raman 20200218.csv'
-data = pd.read_csv(data_filepath) #Read data in Raman file
-target_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Targets 20200218.csv'
-target = pd.read_csv(target_filepath)  #Read data in target file
+#data_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Raman 20200218.csv'
+data = pd.read_csv('Raman 20200218.csv') #Read data in Raman file
+# target_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Targets 20200218.csv'
+target = pd.read_csv('Targets 20200218.csv')  #Read data in target file
 # %% Select data  of interest
 # Create list with features of interest (Spectra_049 to Spectra_1024 since first 50 pixels empty)
 spectra_number = range(49,1025)
@@ -161,9 +171,13 @@ for ii, target_name in enumerate(target_data):
     decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt)
     random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf)
     comparison(target_name,mae_dt,mae_rf)
-    
-
-
-
+#%% PLotting 
+for ii,target_name in enumerate(target_data):
+    plt.figure(ii+1)
+    plt.plot(dt_optimization_leafs,mae_dt[target_name],'.',rf_optimization_leafs,mae_rf[target_name],'.')
+    plt.xlabel('Number of leafs')
+    plt.ylabel('Mean Absolute Error')
+    plt.title('MAE values of {} for both Random Forest and Decision Tree models'.format(target_name))
+    plt.legend('Decision Tree','Random Forest')
 
 
