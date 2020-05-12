@@ -79,6 +79,39 @@ def random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf):
     # plt.xlabel('Number of leafs')
     # plt.ylabel('Mean Absolute Error')
     # plt.title('Random Forest Model for {}'.format(target_name))
+
+# Comparison
+def comparison(target_name,mae_dt,mae_rf):
+    if target_name == 'BL':
+        if mae_dt['BL'] < mae_rf['BL']:
+            bestmodel = 'Decision Tree'
+            mae = mae_dt['BL']
+            nodes = mae_dt['BL_nodes']
+        else:
+            bestmodel = 'Random Forest'
+            mae = mae_rf['BL']
+            nodes = mae_rf['BL_nodes']
+        print('Best model for BL is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
+    elif target_name == 'Tear':
+        if mae_dt['Tear'] < mae_rf['Tear']:
+            bestmodel = 'Decision Tree'
+            mae = mae_dt['Tear']
+            nodes = mae_dt['Tear_nodes']
+        else:
+            bestmodel = 'Random Forest'
+            mae = mae_rf['Tear']
+            nodes = mae_rf['Tear_nodes']
+        print('Best model for Tear is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
+    else:
+        if mae_dt['Burst'] < mae_rf['Burst']:
+            bestmodel = 'Decision Tree'
+            mae = mae_dt['Burst']
+            nodes = mae_dt['Burst_nodes']
+        else:
+            bestmodel = 'Random Forest'
+            mae = mae_rf['Burst']
+            nodes = mae_rf['Burst_nodes']
+        print('Best model for Burst is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
 # %% Load and read data (either programatically or manually)
 # Select data manually from filedialog pop-up window  
     # root = tk.Tk()
@@ -127,36 +160,7 @@ for ii, target_name in enumerate(target_data):
     y = np.array(target_data.iloc[:,ii]) #Target data
     decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt)
     random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf)
-    if target_name == 'BL':
-        if mae_dt['BL'] < mae_rf['BL']:
-            bestmodel = 'Decision Tree'
-            mae = mae_dt['BL']
-            nodes = mae_dt['BL_nodes']
-        else:
-            bestmodel = 'Random Forest'
-            mae = mae_rf['BL']
-            nodes = mae_rf['BL_nodes']
-        print('Best model for BL is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
-    elif target_name == 'Tear':
-        if mae_dt['Tear'] < mae_rf['Tear']:
-            bestmodel = 'Decision Tree'
-            mae = mae_dt['Tear']
-            nodes = mae_dt['Tear_nodes']
-        else:
-            bestmodel = 'Random Forest'
-            mae = mae_rf['Tear']
-            nodes = mae_rf['Tear_nodes']
-        print('Best model for Tear is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
-    else:
-        if mae_dt['Burst'] < mae_rf['Burst']:
-            bestmodel = 'Decision Tree'
-            mae = mae_dt['Burst']
-            nodes = mae_dt['Burst_nodes']
-        else:
-            bestmodel = 'Random Forest'
-            mae = mae_rf['Burst']
-            nodes = mae_rf['Burst_nodes']
-        print('Best model for Burst is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
+    comparison(target_name,mae_dt,mae_rf)
     
 
 
