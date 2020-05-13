@@ -41,7 +41,7 @@ def decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt):
         mae_dt['BL_opt'] = min(dtmae)
         mae_dt['BL_nodes'] = dt_optimization_leafs[dtmae_min_idx]
     else:
-        mae_dt['Burst']= dtmae
+        mae_dt['burst']= dtmae
         mae_dt['Burst_opt']= min(dtmae)
         mae_dt['Burst_nodes'] = dt_optimization_leafs[dtmae_min_idx]
     return mae_dt
@@ -79,7 +79,7 @@ def random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf):
         mae_rf['BL_opt'] = min(rfmae)
         mae_rf['BL_nodes'] = rf_optimization_leafs[rfmae_min_idx]
     else:
-        mae_rf['Burst']= rfmae
+        mae_rf['burst']= rfmae
         mae_rf['Burst_opt']= min(rfmae)
         mae_rf['Burst_nodes'] = rf_optimization_leafs[rfmae_min_idx]
         return mae_rf
@@ -122,6 +122,15 @@ def comparison(target_name,mae_dt,mae_rf):
             mae = mae_rf['Burst_opt']
             nodes = mae_rf['Burst_nodes']
         print('Best model for Burst is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
+
+# Plotting
+def plotting(ii,target_name,dt_optimization_leafs,rf_optimization_leafs,mae_dt,mae_rf):
+    plt.figure(ii+1)
+    plt.plot(dt_optimization_leafs,mae_dt[target_name],'.',rf_optimization_leafs,mae_rf[target_name],'.')
+    plt.xlabel('Number of leafs')
+    plt.ylabel('Mean Absolute Error')
+    plt.title('MAE values of {} for both Random Forest and Decision Tree models'.format(target_name))
+    plt.legend(['Decision Tree','Random Forest'])    
 # %% Load and read data (either programatically or manually)
 # Select data manually from filedialog pop-up window  
     # root = tk.Tk()
@@ -164,20 +173,15 @@ target_data = filter_data[['Tear','BL','burst']]
 #%% Machine learning models 
 dt_optimization_leafs = [2,4,6,8,10,12,14,16,18] #Number of optimization tree leafs to try in dt model
 rf_optimization_leafs = [20,22,24,28,30,32,34] #Number of optimization tree leafs to try in rf model
-mae_dt = {'Tear': 0,'Burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
-mae_rf = {'Tear': 0,'Burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
+#Initialize 
+mae_dt = {'Tear': 0,'burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
+mae_rf = {'Tear': 0,'burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
 for ii, target_name in enumerate(target_data):
     y = np.array(target_data.iloc[:,ii]) #Target data
     decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt)
     random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf)
     comparison(target_name,mae_dt,mae_rf)
-#%% PLotting 
-for ii,target_name in enumerate(target_data):
-    plt.figure(ii+1)
-    plt.plot(dt_optimization_leafs,mae_dt[target_name],'.',rf_optimization_leafs,mae_rf[target_name],'.')
-    plt.xlabel('Number of leafs')
-    plt.ylabel('Mean Absolute Error')
-    plt.title('MAE values of {} for both Random Forest and Decision Tree models'.format(target_name))
-    plt.legend('Decision Tree','Random Forest')
+    plotting(ii,target_name,dt_optimization_leafs,rf_optimization_leafs,mae_dt,mae_rf)
+    
 
 
