@@ -12,7 +12,7 @@ from sklearn.tree import DecisionTreeRegressor #DT model
 from sklearn.metrics import mean_absolute_error #MAE
 from sklearn.ensemble import RandomForestRegressor #RF model
 import matplotlib.pyplot as plt #Plots
-import astropy.table as astrtable
+import astropy.table as astrtable #Tables
 # %% Functions setup 
 # Decision Tree
 def decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt):
