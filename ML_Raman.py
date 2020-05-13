@@ -130,7 +130,7 @@ def plotting(ii,target_name,dt_optimization_leafs,rf_optimization_leafs,mae_dt,m
 data = pd.read_csv('Raman 20200218.csv') #Read data in Raman file
 # target_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Targets 20200218.csv'
 target = pd.read_csv('Targets 20200218.csv')  #Read data in target file
-# %% Select data  of interest
+# %% Select data of interest
 # Create list with features of interest (Spectra_049 to Spectra_1024 since first 50 pixels empty)
 spectra_number = range(49,1025)
 spectra_interest = []
