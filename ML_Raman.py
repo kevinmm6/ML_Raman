@@ -12,6 +12,7 @@ from sklearn.tree import DecisionTreeRegressor #DT model
 from sklearn.metrics import mean_absolute_error #MAE
 from sklearn.ensemble import RandomForestRegressor #RF model
 import matplotlib.pyplot as plt #Plots
+import astropy.table as astrtable
 # %% Functions setup 
 # Decision Tree
 def decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt):
@@ -118,7 +119,22 @@ def plotting(ii,target_name,dt_optimization_leafs,rf_optimization_leafs,mae_dt,m
     plt.xlabel('Number of leafs')
     plt.ylabel('Mean Absolute Error')
     plt.title('MAE values of {} for both Random Forest and Decision Tree models'.format(target_name))
-    plt.legend(['Decision Tree','Random Forest'])    
+    plt.legend(['Decision Tree','Random Forest'])
+    
+# Tabulation
+def tabulation(dt_optimization_leafs,rf_optimization_leafs):
+    t_dt = astrtable.Table()
+    t_dt['Nodes DT']= dt_optimization_leafs
+    t_dt['Tear DT']= mae_dt['Tear']
+    t_dt['Burst DT']= mae_dt['burst']
+    t_dt['BL DT']= mae_dt['BL']
+    t_rf = astrtable.Table()
+    t_rf['Nodes RF']= rf_optimization_leafs
+    t_rf['Tear RF']= mae_rf['Tear']
+    t_rf['Burst RF']= mae_rf['burst']
+    t_rf['BL RF']= mae_rf['BL']
+    print(t_dt)
+    print(t_rf)
 # %% Load and read data (either programatically or manually)
 # Select data manually from filedialog pop-up window  
     # root = tk.Tk()
@@ -159,8 +175,8 @@ X = filter_data[spectra_interest]
 # Target
 target_data = filter_data[['Tear','BL','burst']]
 #%% Machine learning models 
-dt_optimization_leafs = [2,4,6,8,10,12,14,16,18] #Number of optimization tree leafs to try in dt model
-rf_optimization_leafs = [20,22,24,28,30,32,34] #Number of optimization tree leafs to try in rf model
+dt_optimization_leafs = np.array([2,4,6,8,10,12,14,16,18]) #Number of optimization tree leafs to try in dt model
+rf_optimization_leafs = np.array([20,22,24,28,30,32,34]) #Number of optimization tree leafs to try in rf model
 #Initialize 
 mae_dt = {'Tear': 0,'burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
 mae_rf = {'Tear': 0,'burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
@@ -171,6 +187,8 @@ for ii, target_name in enumerate(target_data):
     random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf)
     comparison(target_name,mae_dt,mae_rf)
     plotting(ii,target_name,dt_optimization_leafs,rf_optimization_leafs,mae_dt,mae_rf)
-    
+tabulation(dt_optimization_leafs,rf_optimization_leafs)
+
+
 
 
