@@ -77,7 +77,7 @@ def random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf):
         mae_rf['burst']= rfmae
         mae_rf['Burst_opt']= min(rfmae)
         mae_rf['Burst_nodes'] = rf_optimization_leafs[rfmae_min_idx]
-        return mae_rf
+    return mae_rf
     
 # Comparison
 def comparison(target_name,mae_dt,mae_rf):
