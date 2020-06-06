@@ -45,7 +45,7 @@ dataset = pd.concat([feature_data,target_data],axis=1)
 dataset = dataset.dropna()
 #%% Set training and validation dataset
 X = dataset[spectra_names].values
-y = dataset["Tear"].values
+y = dataset["Burst"].values
 #Leave 20% pf data for validation purposes
 validation_size=0.20
 seed = 7
