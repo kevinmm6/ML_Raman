@@ -3,191 +3,119 @@
 # Code using two different machine learning models (Decision Tree and Random 
 # Forest) on Raman data for pulp.
 # %% Libraries setup
+import numpy as np
 import pandas as pd # Read data files (.csv or .xlsx)
-#import tkinter as tk #Filedialog window
-#import sys #sys.exit() to programatically stop code 
-import numpy as np #Arrays
-from sklearn.model_selection import train_test_split #Split data into training and validation 
-from sklearn.tree import DecisionTreeRegressor #DT model
+import matplotlib.pyplot as plt
+from numpy import arange
+from matplotlib import pyplot
+from pandas import set_option
+from pandas.plotting import scatter_matrix
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Lasso
+from sklearn.linear_model import ElasticNet
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error #MAE
-from sklearn.ensemble import RandomForestRegressor #RF model
-import matplotlib.pyplot as plt #Plots
 import astropy.table as astrtable #Tables
-# %% Functions setup 
-# Decision Tree
-def decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt):
-    #Split data
-    train_X, val_X, train_y, val_y = train_test_split(X,y,random_state = 1)
-    # Model selection, fitting and MAE calculation 
-    raman_dtmodel = DecisionTreeRegressor(random_state=1) #Model selection 
-    raman_dtmodel.fit(train_X,train_y) #Training
-    val_dtpredictions = raman_dtmodel.predict(val_X) #Predictions
-    val_dtmae = mean_absolute_error(val_dtpredictions,val_y) #MAE
-    print('MAE for Decision Tree validation of {}: {}'.format(target_name,val_dtmae))
-    # Optimization
-    dtmae = []
-    for jj in dt_optimization_leafs:
-        raman_dtmodel = DecisionTreeRegressor(max_leaf_nodes = jj, random_state=1) #Model
-        raman_dtmodel.fit(train_X,train_y) #Training
-        dtpredictions = raman_dtmodel.predict(val_X) #Predictions
-        dtmae.append(mean_absolute_error(dtpredictions,val_y)) #MAE
-    dtmae_min_idx = dtmae.index(min(dtmae))
-    #Store optimized values of DT model for comparison
-    if target_name == 'Tear':
-        mae_dt['Tear'] = dtmae
-        mae_dt['Tear_opt'] = min(dtmae)
-        mae_dt['Tear_nodes'] = dt_optimization_leafs[dtmae_min_idx]
-    elif target_name == 'BL':
-        mae_dt['BL'] = dtmae
-        mae_dt['BL_opt'] = min(dtmae)
-        mae_dt['BL_nodes'] = dt_optimization_leafs[dtmae_min_idx]
-    else:
-        mae_dt['burst']= dtmae
-        mae_dt['Burst_opt']= min(dtmae)
-        mae_dt['Burst_nodes'] = dt_optimization_leafs[dtmae_min_idx]
-    return mae_dt
+#%% Load and explore data
+feature_filename='Raman 20200218.csv'
+target_filename='Targets 20200218.csv'
+features_dataset = pd.read_csv(feature_filename)
+target_dataset=pd.read_csv(target_filename)
+#First 48 pixels are blank so we're only gonna take pixels from 049-1024 as features
+spectra_names = ["Spectrum_0"+str(ii) if ii<100 else "Spectrum_"+str(ii) for ii in range(49,1025)]
+feature_data=features_dataset[spectra_names]
+#The targer dataset is bigger than the features one and has nonvalues so we concatenate the two and delete the rows with NaN.
+target_names=["Burst","BL","Tear"]
+target_data=target_dataset[target_names]
+dataset = pd.concat([feature_data,target_data],axis=1)
+#Drop NaN values
+dataset = dataset.dropna()
+#%% Set training and validation dataset
+X = dataset[spectra_names].values
+y = dataset["Tear"].values
+#Leave 20% pf data for validation purposes
+validation_size=0.20
+seed = 7
+train_X,val_X, train_y, val_y = train_test_split(X,y,test_size=validation_size,random_state=seed)
+#%% Spot checking algorithms
+models=[]
+models.append(("LR",LinearRegression()))
+models.append(("LASSO",Lasso()))
+models.append(("EN",ElasticNet()))
+models.append(("KNN",KNeighborsRegressor()))
+models.append(("CART",DecisionTreeRegressor()))
+models.append(("SVR",SVR()))
+#Evaluate models using k-fold cross validation
+n_folds=10
+scoring_metric='neg_mean_squared_error'
+results=[]
+means=[]
+std=[]
+model_names=[ii for ii,_ in models]
+for name,model in models:
+    kfold=KFold(n_splits=n_folds,random_state=seed,shuffle=True)
+    cv_results=cross_val_score(model,train_X,train_y,cv=kfold,scoring=scoring_metric)
+    results.append(cv_results)
+    means.append(cv_results.mean())
+    std.append(cv_results.std())
+    print("{}: {} ({})".format(name,cv_results.mean(),cv_results.std()))
+plt.figure(1)
+plt.boxplot(results,labels=model_names)
+#%% Tunning 
+#Although Lasso gave the best result it is not converging so we optimize SVR since it was the second best
+#SVR
+c_values=np.arange(10,100,20)
+kernel_values=["poly","rbf","sigmoid"]
+svr_grid_params={"C":c_values,"kernel":kernel_values}
+svr_model=SVR()
+svr_grid=GridSearchCV(estimator=svr_model,param_grid=svr_grid_params,scoring=scoring_metric,cv=kfold)
+svr_grid_result=svr_grid.fit(train_X,train_y)
+print("Best value: {} with {}".format(svr_grid_result.best_score_,svr_grid_result.best_params_))
+#%% Ensembles
+ensembles=[]
+ensembles.append(('AB',AdaBoostRegressor()))
+ensembles.append(('GB',GradientBoostingRegressor()))
+ensembles.append(('RF',RandomForestRegressor()))
+ensembles.append(('ET',ExtraTreesRegressor()))
+results_ensemble=[]
+names_ensemble=[ii for ii,_ in ensembles]
+for en_name,en_model in ensembles:
+    kfold=KFold(n_splits=n_folds,random_state=seed,shuffle=True)
+    en_cv_results=cross_val_score(en_model,train_X,train_y,cv=kfold,scoring=scoring_metric)
+    results_ensemble.append(en_cv_results)
+    print('{}: {:.4f} ({:.4f})'.format(en_name,en_cv_results.mean(),en_cv_results.std()))
+plt.figure(2)
+plt.boxplot(results_ensemble,labels=names_ensemble)
+#%% Ensembles Tunning
+kfold=KFold(n_splits=n_folds,random_state=seed,shuffle=True)
+et_model=ExtraTreesRegressor()
+n_leafs=np.arange(8,15,2)
+n_est=np.arange(100,120,10)
+en_grid_params={"max_leaf_nodes":n_leafs,'n_estimators':n_est}
+en_grid=GridSearchCV(estimator=et_model,param_grid=en_grid_params,scoring=scoring_metric,cv=kfold)
+en_grid_result=en_grid.fit(train_X,train_y)
+print('Best value: {} with {}'.format(en_grid_result.best_score_,en_grid_result.best_params_))
+#%% Finalize model
+final_model=ExtraTreesRegressor(n_estimators=100,max_leaf_nodes=100,random_state=seed)
+final_model.fit(train_X,train_y)
+predictions=final_model.predict(val_X)
+print(mean_squared_error(val_y,predictions))
 
-# Random Forest 
-def random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf):
-    # Split data
-    train_X, val_X, train_y, val_y = train_test_split(X,y,random_state = 1)
-    raman_rfmodel = RandomForestRegressor(random_state=1) #Model selection
-    raman_rfmodel.fit(train_X,train_y) #Training
-    val_rfpredictions = raman_rfmodel.predict(val_X) #Predictions
-    val_rfmae = mean_absolute_error(val_rfpredictions,val_y)
-    print('MAE for Random Forest validation of {}: {}'.format(target_name,val_rfmae))
-    # Optimization
-    rfmae = []   
-    for jj in rf_optimization_leafs:
-        raman_rfmodel = RandomForestRegressor(max_leaf_nodes = jj, random_state=1)
-        raman_rfmodel.fit(train_X,train_y)
-        rfpredictions = raman_rfmodel.predict(val_X)
-        rfmae.append(mean_absolute_error(rfpredictions,val_y))
-    rfmae_min_idx = rfmae.index(min(rfmae))
-    #Store optimized values of RF model for comparison
-    if target_name == 'Tear':
-        mae_rf['Tear'] = rfmae
-        mae_rf['Tear_opt'] = min(rfmae)
-        mae_rf['Tear_nodes'] = rf_optimization_leafs[rfmae_min_idx]
-    elif target_name == 'BL':
-        mae_rf['BL'] = rfmae
-        mae_rf['BL_opt'] = min(rfmae)
-        mae_rf['BL_nodes'] = rf_optimization_leafs[rfmae_min_idx]
-    else:
-        mae_rf['burst']= rfmae
-        mae_rf['Burst_opt']= min(rfmae)
-        mae_rf['Burst_nodes'] = rf_optimization_leafs[rfmae_min_idx]
-    return mae_rf
-    
-# Comparison
-def comparison(target_name,mae_dt,mae_rf):
-    if target_name == 'BL':
-        if mae_dt['BL_opt'] < mae_rf['BL_opt']:
-            bestmodel = 'Decision Tree'
-            mae = mae_dt['BL_opt']
-            nodes = mae_dt['BL_nodes']
-        else:
-            bestmodel = 'Random Forest'
-            mae = mae_rf['BL_opt']
-            nodes = mae_rf['BL_nodes']
-        print('Best model for BL is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
-    elif target_name == 'Tear':
-        if mae_dt['Tear_opt'] < mae_rf['Tear_opt']:
-            bestmodel = 'Decision Tree'
-            mae = mae_dt['Tear_opt']
-            nodes = mae_dt['Tear_nodes']
-        else:
-            bestmodel = 'Random Forest'
-            mae = mae_rf['Tear_opt']
-            nodes = mae_rf['Tear_nodes']
-        print('Best model for Tear is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
-    else:
-        if mae_dt['Burst_opt'] < mae_rf['Burst_opt']:
-            bestmodel = 'Decision Tree'
-            mae = mae_dt['Burst_opt']
-            nodes = mae_dt['Burst_nodes']
-        else:
-            bestmodel = 'Random Forest'
-            mae = mae_rf['Burst_opt']
-            nodes = mae_rf['Burst_nodes']
-        print('Best model for Burst is {} with {} nodes and a MAE of {}'.format(bestmodel,nodes,mae))
 
-# Plotting
-def plotting(ii,target_name,dt_optimization_leafs,rf_optimization_leafs,mae_dt,mae_rf):
-    plt.figure(ii+1)
-    plt.plot(dt_optimization_leafs,mae_dt[target_name],'.',rf_optimization_leafs,mae_rf[target_name],'.')
-    plt.xlabel('Number of leafs')
-    plt.ylabel('Mean Absolute Error')
-    plt.title('MAE values of {} for both Random Forest and Decision Tree models'.format(target_name))
-    plt.legend(['Decision Tree','Random Forest'])
-    
-# Tabulation
-def tabulation(dt_optimization_leafs,rf_optimization_leafs):
-    t_dt = astrtable.Table()
-    t_dt['Nodes DT']= dt_optimization_leafs
-    t_dt['Tear DT']= mae_dt['Tear']
-    t_dt['Burst DT']= mae_dt['burst']
-    t_dt['BL DT']= mae_dt['BL']
-    t_rf = astrtable.Table()
-    t_rf['Nodes RF']= rf_optimization_leafs
-    t_rf['Tear RF']= mae_rf['Tear']
-    t_rf['Burst RF']= mae_rf['burst']
-    t_rf['BL RF']= mae_rf['BL']
-    print(t_dt)
-    print(t_rf)
-# %% Load and read data (either programatically or manually)
-# Select data manually from filedialog pop-up window  
-    # root = tk.Tk()
-    # root.withdraw() #Prevent root window from appearing 
-    # file = tk.filedialog.askopenfilename() #Invoke dialog window to open file
- 
-# Load file data programatically
-#data_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Raman 20200218.csv'
-data = pd.read_csv('Raman 20200218.csv') #Read data in Raman file
-# target_filepath = 'C:/Kevin/Python/ML_Raman/Neural Network data/Targets 20200218.csv'
-target = pd.read_csv('Targets 20200218.csv')  #Read data in target file
-# %% Select data of interest
-# Create list with features of interest (Spectra_049 to Spectra_1024 since first 50 pixels empty)
-spectra_number = range(49,1025)
-spectra_interest = []
-for ii in spectra_number:
-    if ii<100:
-        spectra_interest.append('Spectrum_0'+ str(ii))
-    else:
-        spectra_interest.append('Spectrum_'+ str(ii))   
-total_data = data[spectra_interest]
 
-# Target data has 760 values in comparison to the 699 values of the spectra
-# data, so we select target data with that same range
-total_datalen = len(total_data)
-tear = target.Tear[0:total_datalen] 
-BL = target.BL[0:total_datalen]
-burst = target.Burst[0:total_datalen]
-#Insert target at the end of data 
-total_data.insert(total_data.shape[1],'Tear',tear) 
-total_data.insert(total_data.shape[1],'BL',BL)
-total_data.insert(total_data.shape[1],'burst',burst)
-# Filter rows with missing target data
-filter_data = total_data.dropna(axis=0)
-#%% Set features and target data
-# Features
-X = filter_data[spectra_interest]
-# Target
-target_data = filter_data[['Tear','BL','burst']]
-#%% Machine learning models 
-dt_optimization_leafs = np.array([2,4,6,8,10,12,14,16,18]) #Number of optimization tree leafs to try in dt model
-rf_optimization_leafs = np.array([20,22,24,28,30,32,34]) #Number of optimization tree leafs to try in rf model
-#Initialize 
-mae_dt = {'Tear': 0,'burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
-mae_rf = {'Tear': 0,'burst': 0,'BL': 0,'Tear_nodes' : 0,'BL_nodes' : 0,'Burst_nodes' : 0}
-#Script
-for ii, target_name in enumerate(target_data):
-    y = np.array(target_data.iloc[:,ii]) #Target data
-    decision_tree(X,target_data,ii,target_name,dt_optimization_leafs,y,mae_dt)
-    random_forest(X,target_data,ii,target_name,rf_optimization_leafs,y,mae_rf)
-    comparison(target_name,mae_dt,mae_rf)
-    plotting(ii,target_name,dt_optimization_leafs,rf_optimization_leafs,mae_dt,mae_rf)
-tabulation(dt_optimization_leafs,rf_optimization_leafs)
 
 
 
